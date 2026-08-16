@@ -1,3 +1,6 @@
 skills-lock.json
+backend/target/
+.idea/
+*.iml
 
 ui/*
