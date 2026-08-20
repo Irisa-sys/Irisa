@@ -1,0 +1,11 @@
+sequenceDiagram
+    participant G as 游戏插件
+    participant D as MySQL 账本与事件
+    participant A as persona 补偿任务
+    participant B as 浏览器
+
+    G->>D: 同事务写私有表、ledger、event_log
+    A->>D: 扫 apply_status=PENDING 的 event_log
+    A->>D: 改分后 PENDING 改为 DONE
+    B->>G: GET /api/persona
+    G-->>B: 新健康度

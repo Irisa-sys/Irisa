@@ -1,0 +1,37 @@
+# 机器可读事件登记。改此文件必须同步基座技术方案。
+# consumers 含 persona（改分）与 memory（增量写入 ES）时，补偿任务两者都做，失败互不影响。
+version: 1
+events:
+  - type: pathology.report.issued
+    producer: pathology
+    consumers: [echo, court, persona, memory]
+  - type: haunt.ghost.spawned
+    producer: haunt
+    consumers: [bank, persona]
+  - type: bank.position.updated
+    producer: bank
+    consumers: [court, haunt, persona]
+  - type: bank.bankruptcy.filed
+    producer: bank
+    consumers: [court, notify]
+  - type: court.verdict.signed
+    producer: court
+    consumers: [persona, echo]
+  - type: echo.oath.written
+    producer: echo
+    consumers: [pathology, memory]
+  - type: echo.triggered
+    producer: echo
+    consumers: [notify, court]
+  - type: gravity.graph.updated
+    producer: gravity
+    consumers: [persona]
+  - type: polarizer.round.closed
+    producer: polarizer
+    consumers: [persona]
+  - type: persona.credit.changed
+    producer: persona
+    consumers: [court, haunt, bank]
+  - type: persona.health.changed
+    producer: persona
+    consumers: [court, haunt, pathology, echo, gravity, polarizer, bank]

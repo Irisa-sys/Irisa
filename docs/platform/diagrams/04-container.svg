@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420" role="img" aria-label="Container">
+  <style>
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: #0f172a; }
+    .t { font-size: 13px; font-weight: 600; }
+    .s { font-size: 11px; fill: #475569; }
+    .box { fill: #fff; stroke: #4f46e5; stroke-width: 1.25; }
+    .layer { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1; }
+    .line { stroke: #64748b; fill: none; stroke-width: 1.2; marker-end: url(#a2); }
+    .dash { stroke-dasharray: 4 3; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e2e8f0; }
+      .s { fill: #94a3b8; }
+      .box { fill: #1e293b; stroke: #a5b4fc; }
+      .layer { fill: #0f172a; stroke: #475569; }
+      .line { stroke: #94a3b8; }
+    }
+  </style>
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect class="box" x="300" y="8" width="120" height="36" rx="6"/>
+  <text class="t" x="360" y="31" text-anchor="middle">用户 Web</text>
+
+  <rect class="layer" x="40" y="64" width="640" height="200" rx="8"/>
+  <text class="s" x="56" y="84">Spring Boot 单体</text>
+  <rect class="box" x="56" y="100" width="160" height="48" rx="6"/>
+  <text class="t" x="136" y="120" text-anchor="middle">网关</text>
+  <text class="s" x="136" y="136" text-anchor="middle">鉴权 · 转发 · SSE</text>
+  <rect class="box" x="248" y="100" width="412" height="48" rx="6"/>
+  <text class="t" x="454" y="120" text-anchor="middle">基座</text>
+  <text class="s" x="454" y="136" text-anchor="middle">身份 画像 账本 事件 Agent 插件运行时</text>
+  <rect class="box" x="248" y="168" width="412" height="72" rx="6"/>
+  <text class="t" x="454" y="196" text-anchor="middle">游戏插件</text>
+  <text class="s" x="454" y="216" text-anchor="middle">病理 · 法庭 · 闹鬼 · 银行 · 回音 · 重力 · 偏振</text>
+
+  <rect class="box" x="40" y="292" width="112" height="40" rx="6"/>
+  <text class="t" x="96" y="317" text-anchor="middle">MySQL</text>
+  <rect class="box" x="172" y="292" width="112" height="40" rx="6"/>
+  <text class="t" x="228" y="317" text-anchor="middle">Redis</text>
+  <rect class="box" x="304" y="292" width="112" height="40" rx="6"/>
+  <text class="t" x="360" y="317" text-anchor="middle">ES</text>
+  <rect class="box" x="436" y="292" width="140" height="40" rx="6"/>
+  <text class="t" x="506" y="317" text-anchor="middle">LiteTopic</text>
+  <rect class="box" x="596" y="292" width="84" height="40" rx="6"/>
+  <text class="t" x="638" y="317" text-anchor="middle">LLM</text>
+
+  <path class="line" d="M360 44 V64"/>
+  <path class="line" d="M136 148 V292"/>
+  <path class="line" d="M454 148 V168"/>
+  <path class="line" d="M300 240 V292"/>
+  <path class="line dash" d="M506 240 V292"/>
+  <path class="line" d="M620 148 C620 220 638 240 638 292"/>
+  <text class="s" x="560" y="268">SseSink.send</text>
+</svg>

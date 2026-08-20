@@ -1,0 +1,17 @@
+{
+  "reportId": "pr_1",
+  "date": "2026-08-20",
+  "diagnosisCode": "DA_RECEPTOR_OVERLOAD",
+  "title": "确诊为多巴胺受体低级过载丧尸化",
+  "findings": [
+    { "code": "RED_DOT_COMPULSION", "text": "红点强迫性扫描，间歇期小于 90 秒" },
+    { "code": "PSEUDO_LABOR", "text": "以微调间距伪装生产行为" }
+  ],
+  "prescription": [
+    { "drug": "强制锁屏 45m", "forFinding": "RED_DOT_COMPULSION" },
+    { "drug": "禁止打开样式面板直至有测试失败", "forFinding": "PSEUDO_LABOR" }
+  ],
+  "severity": "SEVERE_SLACK",
+  "mindHealthDelta": -12,
+  "createdAt": "2026-08-20T04:12:00Z"
+}

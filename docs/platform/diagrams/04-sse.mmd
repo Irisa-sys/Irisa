@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant B as 浏览器
+    participant GW as gateway
+    participant P as 游戏插件
+    participant AG as agent
+    participant L as LiteTopic
+
+    B->>GW: POST 动作
+    GW->>P: 转发
+    P->>AG: submit Agent
+    P-->>GW: 202/201 受理
+    GW-->>B: 短响应
+    B->>GW: GET /stream
+    GW->>GW: 挂 SseEmitter
+    GW->>L: 订阅 irisa-sse-{playerId}-{topic}
+    AG->>L: send 帧
+    L->>GW: 投递
+    GW-->>B: SSE event

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" width="640" height="320" role="img" aria-label="SSE 帧链路">
+  <style>
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: #0f172a; font-size: 12px; }
+    .t { font-size: 13px; font-weight: 600; }
+    .box { fill: #fff; stroke: #4f46e5; stroke-width: 1.25; }
+    .life { stroke: #94a3b8; stroke-width: 1; }
+    .msg { stroke: #334155; fill: none; stroke-width: 1.2; marker-end: url(#a4); }
+    .ret { stroke-dasharray: 4 3; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e2e8f0; }
+      .box { fill: #1e293b; stroke: #a5b4fc; }
+      .life { stroke: #64748b; }
+      .msg { stroke: #cbd5e1; }
+    }
+  </style>
+  <defs>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect class="box" x="8" y="8" width="88" height="36" rx="4"/>
+  <text class="t" x="52" y="31" text-anchor="middle">浏览器</text>
+  <rect class="box" x="140" y="8" width="88" height="36" rx="4"/>
+  <text class="t" x="184" y="31" text-anchor="middle">网关</text>
+  <rect class="box" x="280" y="8" width="88" height="36" rx="4"/>
+  <text class="t" x="324" y="31" text-anchor="middle">插件</text>
+  <rect class="box" x="420" y="8" width="88" height="36" rx="4"/>
+  <text class="t" x="464" y="31" text-anchor="middle">Agent</text>
+  <rect class="box" x="544" y="8" width="88" height="36" rx="4"/>
+  <text class="t" x="588" y="31" text-anchor="middle">LiteTopic</text>
+  <line class="life" x1="52" y1="44" x2="52" y2="308"/>
+  <line class="life" x1="184" y1="44" x2="184" y2="308"/>
+  <line class="life" x1="324" y1="44" x2="324" y2="308"/>
+  <line class="life" x1="464" y1="44" x2="464" y2="308"/>
+  <line class="life" x1="588" y1="44" x2="588" y2="308"/>
+
+  <path class="msg" d="M52 72 H176"/>
+  <text x="114" y="64" text-anchor="middle">POST 动作</text>
+  <path class="msg" d="M184 104 H316"/>
+  <text x="250" y="96" text-anchor="middle">转发</text>
+  <path class="msg" d="M324 136 H456"/>
+  <text x="390" y="128" text-anchor="middle">submit</text>
+  <path class="msg ret" d="M184 168 H60"/>
+  <text x="122" y="160" text-anchor="middle">201/202</text>
+  <path class="msg" d="M52 200 H176"/>
+  <text x="114" y="192" text-anchor="middle">GET /stream</text>
+  <path class="msg" d="M184 232 H580"/>
+  <text x="382" y="224" text-anchor="middle">订阅 topic</text>
+  <path class="msg" d="M464 264 H580"/>
+  <text x="522" y="256" text-anchor="middle">send 帧</text>
+  <path class="msg" d="M588 296 H60"/>
+  <text x="324" y="288" text-anchor="middle">SSE event</text>
+</svg>

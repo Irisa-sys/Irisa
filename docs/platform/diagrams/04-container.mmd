@@ -1,0 +1,45 @@
+flowchart TB
+    subgraph CLIENT[客户端]
+        WEB[用户 Web]
+    end
+
+    subgraph APP[Spring Boot 模块化单体]
+        GW[gateway<br/>鉴权、转发、SSE 连接]
+        ID[auth / player]
+        PE[persona]
+        LD[ledger]
+        EV[event]
+        AG[agent / LlmClient]
+        PL[plugin runtime]
+        GM[game.pathology / court / haunt / bank / echo / gravity / polarizer]
+        MEM[memory ES]
+        CA[cache Redis]
+    end
+
+    MYSQL[(MySQL)]
+    REDIS[(Redis)]
+    ES[(Elasticsearch)]
+    MQ[(RocketMQ LiteTopic)]
+    LLM[模型供应商]
+
+    WEB --> GW
+    GW --> ID
+    GW --> PL
+    GW --> PE
+    PL --> GM
+    GM --> LD
+    GM --> EV
+    GM --> AG
+    AG --> LLM
+    ID --> MYSQL
+    ID --> REDIS
+    PE --> MYSQL
+    PE --> REDIS
+    LD --> MYSQL
+    EV --> MYSQL
+    MEM --> ES
+    CA --> REDIS
+    AG -.->|SseSink.send| MQ
+    GW -.->|订阅| MQ
+    MQ -.-> GW
+    GW -->|SSE| WEB

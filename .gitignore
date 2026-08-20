@@ -1,6 +1,8 @@
 skills-lock.json
 backend/target/
+backend/.env
 .idea/
 *.iml
 
 ui/*
+/.obsidian/

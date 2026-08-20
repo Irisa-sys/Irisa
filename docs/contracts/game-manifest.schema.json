@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Irisa GameManifest",
+  "type": "object",
+  "required": ["slug", "title", "version", "emits", "consumes"],
+  "properties": {
+    "slug": {
+      "enum": ["court", "haunt", "pathology", "echo", "gravity", "polarizer", "bank"]
+    },
+    "title": { "type": "string" },
+    "version": { "type": "string" },
+    "routes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "enum": ["agent", "sse", "signature", "webhook", "canvas", "cron", "interrupt"]
+      }
+    },
+    "emits": { "type": "array", "items": { "type": "string" } },
+    "consumes": { "type": "array", "items": { "type": "string" } }
+  }
+}
