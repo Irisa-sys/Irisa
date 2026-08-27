@@ -44,6 +44,6 @@ CI / push webhook 或手动 POST /actions/scan
 `g_bank_debt_note(id, repo, path, principal, rate, interest, in_degree, npl, last_author_at)`
 `g_bank_daily_bar(repo, day, open, high, low, close)` — K 线预聚合。
 
-## FactQuery
+## 对外查询
 
-向法庭审计员暴露：`FACT_BANK_POSITION` → `{principal, interest, nplCount, topNotes[3]}`。
+`bank.query` / `FACT_BANK_POSITION` → `{principal, interest, nplCount, topNotes[3]}`。法庭只调这个，不读银行表。

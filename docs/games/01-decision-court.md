@@ -51,7 +51,7 @@ POST /actions/open
 ## 数据
 
 `g_court_case(id, player_id, title, status, rounds, verdict, signature_svg, created_at)`
-`g_court_utterance` 只存摘要；全文进 ES `mem_transcript`。
+`g_court_utterance` 只存摘要；全文 `court.es` 在 emit 前写完。外域调 `court.query`。可分享片段异步交共享语料。审计员只 `FACT_*`（封装病理/银行 query）。
 
 ## P0 / P1
 

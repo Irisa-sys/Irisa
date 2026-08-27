@@ -41,7 +41,7 @@
 
 每个游戏 P0 必须同时满足：
 
-1. 实现 `GamePlugin`，出现在 `/api/games`
+1. 实现 `game.api` 应用服务，出现在 `/api/games`
 2. 至少 1 条登记过的 emit 或 consume
 3. 有不可被其他游戏替换的前端语言
 4. 账本有至少 1 类 `ledger_entry`

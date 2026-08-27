@@ -2,16 +2,16 @@
 
 ## Phase 0 — 底座能转（约 1 周）· 前端同时画壳
 
-设计：[基座技术方案](./platform/base-tech-design.md)。实施：[plan/irisa-base-plan.md](./platform/plan/irisa-base-plan.md)（M1–M12）。  
+设计：[基座技术方案](./platform/base-tech-design.md)。实施：[plan/irisa-base-plan.md](./platform/plan/irisa-base-plan.md)（基座 V-BASE → 身份 V-ID → 网关 V-GATE → 游戏）。  
 契约：[HTTP](./contracts/http-api.md) · [SSE](./contracts/sse-events.md) · [并行评估](./platform/parallel-dev.md)
 
 底座：
 
-- [ ] Spring Boot + Modulith 单体，游戏是包不是独立 jar
-- [ ] player / persona / ledger / signal / outbox；JWT + Redis 黑名单
-- [ ] mock 登录发 Bearer + 按契约：`/me` `/persona` `/games` pathology.admit court.open/sign
-- [ ] AgentRuntime 虚拟线程 + ScriptLlmClient；SSE 由网关持连接，帧走 RocketMQ LiteTopic
-- [ ] MemoryStore=ES，CacheOps=Redis；验收：发一条测试信号，画像分数变
+- [ ] Spring Boot + Modulith 单体，游戏是包不是独立 jar；无 plugin-api / host-sdk
+- [ ] 基座四表 ledger / event_log / index_job / agent_usage；身份表后建
+- [ ] mock 登录发 Bearer（身份期）+ `/me` `/persona` `/games`（网关期）
+- [ ] Agent 虚拟线程 + ScriptLlmClient；基座 FrameSink → LiteTopic；SSE 由网关持连接
+- [ ] 共享语料=index_job + embedding → irisa_corpus（合成文档）；本域 ES 由游戏自管；CacheOps=Redis
 
 前端（并行，不挡底座）：
 

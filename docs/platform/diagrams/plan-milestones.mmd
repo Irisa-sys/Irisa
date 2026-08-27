@@ -1,16 +1,20 @@
 flowchart LR
-    M1 --> M2[M2 身份与进站]
-    M1 --> M3[M3 Agent 端口]
-    M2 --> M4[M4 病理闭环]
-    M3 --> M4
-    M4 --> M5[M5 法庭与 SSE]
-    M3 --> M5
-    M5 --> M6[M6 真模型]
-    M2 --> M7[M7 OAuth]
-    M5 --> M8[M8 代码事实]
-    M5 --> M9[M9 回音]
-    M5 --> M10[M10 重力与偏振]
-    M8 --> M11[M11 Webhook]
-    M10 --> M12[M12 硬化]
-    M9 --> M12
-    M11 --> M12
+    B1[B1 工程] --> B2[B2 基座端口]
+    B2 --> B3[B3 账本事件]
+    B2 --> B4[B4 共享语料]
+    B2 --> B5[B5 Agent]
+    B2 --> B6[B6 通道]
+    B3 --> B4
+    B3 --> V[V-BASE]
+    B4 --> V
+    B5 --> V
+    B6 --> V
+    V --> ID[ID1 身份]
+    ID --> VID[V-ID]
+    VID --> GW[GW 网关]
+    GW --> VG[V-GATE]
+    VG --> G1[G1 病理]
+    G1 --> G2[G2 法庭]
+    G1 --> G3[G3–G5]
+    G3 --> H1[H1]
+    G2 --> H1

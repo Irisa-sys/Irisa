@@ -1,11 +1,17 @@
 sequenceDiagram
-    participant G as 游戏插件
-    participant D as MySQL 账本与事件
-    participant A as persona 补偿任务
-    participant B as 浏览器
+    participant K as 游戏命令
+    participant D as MySQL
+    participant L as 本域 ES
+    participant Q as 本域 query API
+    participant X as 外域
+    participant P as projection
+    participant W as corpus worker
+    participant C as irisa_corpus
 
-    G->>D: 同事务写私有表、ledger、event_log
-    A->>D: 扫 apply_status=PENDING 的 event_log
-    A->>D: 改分后 PENDING 改为 DONE
-    B->>G: GET /api/persona
-    G-->>B: 新健康度
+    K->>D: 事务：g_* + ledger + event_log
+    K->>L: 提交后同步写读模型
+    K->>X: 然后 emit
+    X->>Q: 只调查询 API
+    Q->>L: 本域自己读
+    P->>W: 异步 CorpusDocument
+    W->>C: embedding upsert

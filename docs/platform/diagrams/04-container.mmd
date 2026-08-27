@@ -10,7 +10,7 @@ flowchart TB
         LD[ledger]
         EV[event]
         AG[agent / LlmClient]
-        PL[plugin runtime]
+        PL[game.api / 前门]
         GM[game.pathology / court / haunt / bank / echo / gravity / polarizer]
         MEM[memory ES]
         CA[cache Redis]
@@ -39,7 +39,7 @@ flowchart TB
     EV --> MYSQL
     MEM --> ES
     CA --> REDIS
-    AG -.->|SseSink.send| MQ
+    AG -.->|FrameSink.send| MQ
     GW -.->|订阅| MQ
     MQ -.-> GW
     GW -->|SSE| WEB

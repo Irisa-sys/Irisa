@@ -1,10 +1,12 @@
 # 机器可读事件登记。改此文件必须同步基座技术方案。
-# consumers 含 persona（改分）与 memory（增量写入 ES）时，补偿任务两者都做，失败互不影响。
+# consumers 只含跨游戏听众与 persona（改分）。memory 不是消费者：
+# 外域听事件后只调产出方 query API（ADR-0003）。
+# 本域 ES：产出方在 emit 前同步写完。共享语料仍异步（ADR-0012）。
 version: 1
 events:
   - type: pathology.report.issued
     producer: pathology
-    consumers: [echo, court, persona, memory]
+    consumers: [echo, court, persona]
   - type: haunt.ghost.spawned
     producer: haunt
     consumers: [bank, persona]
@@ -19,7 +21,7 @@ events:
     consumers: [persona, echo]
   - type: echo.oath.written
     producer: echo
-    consumers: [pathology, memory]
+    consumers: [pathology]
   - type: echo.triggered
     producer: echo
     consumers: [notify, court]

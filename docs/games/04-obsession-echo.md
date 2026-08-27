@@ -9,7 +9,7 @@ slug: `echo`
 ## 誓言生命周期
 
 ```
-WRITTEN ──► DORMANT（ES 向量沉睡，UI 不可见）
+WRITTEN ──► DORMANT（本域存原文，UI 不可见）
               │
               │ Cron 每 6h：看病理窗口 + 玩家自报进度
               ▼
@@ -37,9 +37,9 @@ WRITTEN ──► DORMANT（ES 向量沉睡，UI 不可见）
 
 ## 数据
 
-底座表 `oath` + ES `mem_oath`。游戏几乎无私有表。
+游戏表 `oath`（或本域 ES 存原文）。可分享誓言经 `projection` 交共享语料。同类近邻是加深项，走共享语料 kNN。
 
 ## 信号
 
 emit `echo.oath.written` / `echo.triggered`
-consume `pathology.report.issued`
+consume `pathology.report.issued`；读病历细节只调 `pathology.query`

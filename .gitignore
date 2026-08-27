@@ -1,6 +1,8 @@
 skills-lock.json
 backend/target/
+backend/**/target/
 backend/.env
+backend/.apollo-cache/
 .idea/
 *.iml
 

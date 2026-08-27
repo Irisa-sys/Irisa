@@ -23,7 +23,7 @@
   <rect class="box" x="140" y="8" width="88" height="36" rx="4"/>
   <text class="t" x="184" y="31" text-anchor="middle">网关</text>
   <rect class="box" x="280" y="8" width="88" height="36" rx="4"/>
-  <text class="t" x="324" y="31" text-anchor="middle">插件</text>
+  <text class="t" x="324" y="31" text-anchor="middle">游戏</text>
   <rect class="box" x="420" y="8" width="88" height="36" rx="4"/>
   <text class="t" x="464" y="31" text-anchor="middle">Agent</text>
   <rect class="box" x="544" y="8" width="88" height="36" rx="4"/>
@@ -47,7 +47,7 @@
   <path class="msg" d="M184 232 H580"/>
   <text x="382" y="224" text-anchor="middle">订阅 topic</text>
   <path class="msg" d="M464 264 H580"/>
-  <text x="522" y="256" text-anchor="middle">send 帧</text>
+  <text x="522" y="256" text-anchor="middle">FrameSink</text>
   <path class="msg" d="M588 296 H60"/>
   <text x="324" y="288" text-anchor="middle">SSE event</text>
 </svg>

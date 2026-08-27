@@ -6,13 +6,13 @@
 
 ## 决策
 
-1. 用 **Spring Modulith** 做模块边界。Maven 只留 `irisa-spi` + `irisa-app`。游戏是包，不是独立 jar。
+1. 用 **Spring Modulith** 做模块边界。Maven 只 `irisa-app`（见 ADR-0013）。游戏是包，直接依赖 `base` / `identity`，不是独立 jar。
 2. 鉴权用 **JWT Bearer**，不用 `session` 表。登出 = 丢 token + Redis `jti` 黑名单。
 3. 配置用 **`application.properties`**，密钥只走环境变量 / `.env`。
 4. 测试主框架 **Spock**。
 5. MySQL / Redis / ES / RocketMQ **用已部署实例**。仓库只 Docker 化业务进程。
 6. **不降级**：`MemoryStore`→ES，`CacheOps`→Redis，Agent→虚拟线程。Script LLM 与 mock 登录是端口的第一实现。
-7. **SSE 与基座解耦**：网关持有浏览器连接；基座只向 RocketMQ **LiteTopic** `send` 帧。禁止 Redis Stream / Pub/Sub 做 SSE。
+7. **实时帧与 SSE 解耦**：网关持有浏览器连接并输出 SSE；基座只 `FrameSink.send` 到 RocketMQ LiteTopic。禁止 Redis Stream / Pub/Sub 做实时通道。
 
 ## 后果
 

@@ -26,8 +26,8 @@ POST /actions/close { outcome: HELD | CONCEDED | DRAW }
 
 ## 浏览器插件（P1）
 
-只同步书签 URL + 标题 + 文件夹名，进 ES `mem_article`。深挖正文需玩家对单篇授权。
+只同步书签 URL + 标题 + 文件夹名，进偏振本域存储。深挖正文需玩家对单篇授权后，才可经 `projection` 交共享语料。
 
 ## 数据
 
-`g_pol_bout` / `g_pol_punch` 摘要；全文 ES。
+`g_pol_bout` / `g_pol_punch` 摘要；对打全文本域自管。不默认交共享语料。

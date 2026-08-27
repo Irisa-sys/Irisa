@@ -24,7 +24,7 @@ GitHub push/PR webhook
   → HauntPlugin 取 diff（大 diff 截断 + 分片）
   → 分类器（规则先，LLM 后）打 ghostType
   → upsert g_haunt_ghost
-  → ES mem_ghost 写案情
+  → 本域 ES 写案情（游戏自己写）
   → signal haunt.ghost.spawned
   → Persona 扣 code_credit
 ```

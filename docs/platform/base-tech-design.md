@@ -29,18 +29,20 @@ depends_on:
 ### 1.1 方案范围
 
 - 一个可容器化的 Spring Boot 模块化单体（Spring Modulith）。
-- 网关持有 HTTP 与 SSE 连接；基座持有身份、画像、账本、领域事件、Agent 与游戏插件。
-- 七款反思游戏作为插件挂载，跨游戏只走已登记领域事件。
+- 网关持有 HTTP 与 SSE，经游戏前门调 `game.*` 模块（P0 进程内，拆服务可换 HTTP）；身份子域持有玩家与画像与 JWT；基座实现技术端口，不扫游戏、不持身份。
+- 七款反思游戏作为 Modulith 模块挂载，跨游戏只走已登记领域事件。无 plugin-api / host-sdk jar（ADR-0013）。
 - JWT 本地签发；mock 登录与 GitHub OAuth 共用 `player.github_login`。
 - 基座 `LlmClient` 为唯一模型端口：Script 适配器用于无外网验收，OpenAI 兼容适配器用于真模型。
-- MySQL 保存事务性业务数据；Elasticsearch 保存长文与向量；Redis 保存锁、缓存、JWT 黑名单。
-- 领域事件写入 `event_log`；定时补偿扫未处理事件改分、补 ES。对话/庭审输出帧经 RocketMQ LiteTopic 到网关再转 SSE。
+- MySQL 保存事务性业务数据。ES 分两套：游戏私有索引（本域长文，游戏自己写）；基座共享语料索引（LLM 向量检索）。Redis 保存锁、缓存、JWT 黑名单。
+- 领域事件写入 `event_log`；补偿只扫 PENDING 改分。**共享语料**由产出游戏的 `projection` 填信封，基座 `index_job` embedding 后写入共享索引（ADR-0012）。本域长文不进基座。对话/庭审输出帧经 RocketMQ LiteTopic 到网关再转 SSE。
 
 ### 1.2 明确不在范围内
 
 - 独立网关进程、多活 SSE 跨实例路由。
 - Kafka 或 Redis Stream 作为领域事件或 SSE 通道。
-- 游戏模块直接依赖模型 SDK 或 RocketMQ 客户端。
+- 游戏模块直接依赖模型 SDK 或 RocketMQ。ES 客户端仅允许打本模块私有索引。
+- 游戏写基座共享语料索引、基座写 `g_*` 或游戏私有 ES。
+- 独立 `irisa-plugin-api` / `irisa-host-sdk` 工件。
 - 未开开关时对真实 GitHub 仓库开破产 PR。
 - 玩家对战、公开病历排行、组织/租户/SSO。
 - 自研向量库；H2 冒充 MySQL/Redis/ES。
@@ -50,12 +52,13 @@ depends_on:
 | 决策 | 结论 |
 | --- | --- |
 | 运行形态 | 单 JVM 模块化单体，端口 8080；逻辑上网关 ≠ 基座 |
-| 模块边界 | Spring Modulith；`ApplicationModules.verify()` |
+| 模块边界 | Spring Modulith；Maven 只 `irisa-app`；`ApplicationModules.verify()` |
 | 模型接入 | 基座 `LlmClient`；游戏只 `agents().submit`；先 Script 后真模型 |
 | 身份 | JWT HS256 + Redis `jti` 黑名单；无 `session` 表 |
-| 领域事件 | 类型归产生事实的游戏或基座模块；写入 `event_log` 后由补偿任务消费，不另建 outbox / cursor |
-| 输出通道 | 基座 `SseSink.send` LiteTopic；网关消费并输出 SSE；ping 由网关本地发送 |
-| 存储职责 | 分数与账本在 MySQL；长文在 ES；热态在 Redis；SSE 帧在 LiteTopic |
+| 领域事件 | 类型归产生事实的游戏或基座模块；base 只 append `event_log`；identity 消费改分。记忆不是事件消费者（ADR-0012） |
+| 共享语料 | 仅跨游戏 LLM 检索；projection 交信封；`index_job` embedding 后写入单一共享索引 |
+| 输出通道 | 基座 `FrameSink.send` LiteTopic；网关消费并输出 SSE；ping 由网关本地发送 |
+| 存储职责 | 分数与账本在 MySQL；本域长文在游戏私有 ES/表；共享语料在基座向量索引；热态在 Redis；实时帧在 LiteTopic |
 | 配置 | `application.properties` + `IRISA_*` 环境变量 |
 | 测试 | Spock；真实中间件；禁止 H2 冒充 |
 | 破产写 GitHub | 默认 dry-run |
@@ -65,13 +68,16 @@ depends_on:
 | 对象 | 语义 | 持久化边界 |
 | --- | --- | --- |
 | 网关 | HTTP 入口：鉴权、限流、CORS、转发短请求；持有 SSE 长连接 | 不落业务表 |
-| 基座 | 身份、画像、账本、领域事件、Agent、插件运行时 | MySQL / Redis / ES |
-| 游戏插件 | 实现 `GamePlugin` 的 Modulith 包 `com.irisa.game.{slug}` | `g_{slug}_*` 表 |
+| 身份 | 登录、玩家主档、全局画像 | `player` / `persona` |
+| 基座 | 账本、领域事件、Agent、共享语料、通道 | `ledger_entry` / `event_log` / `index_job` / `agent_usage`；Redis；`irisa_corpus` |
+| 游戏前门 | 网关内：list/state/action；P0 调 handle | 不落业务表 |
+| 游戏模块 | Modulith 包 `com.irisa.game.{slug}` | `g_{slug}_*` 表 |
 | Player | 全游戏共享登录主体 | `player` |
 | Persona | 信用分、健康度、能量、偏见标签；只由事件聚合写入 | `persona` |
 | LedgerEntry | 不可变事实摘要 | `ledger_entry` |
-| 领域事件 | 跨游戏唯一通信；type 必须先登记 | `event_log` |
-| LiteTopic 帧 | 实时 SSE 载荷，不是账本 | RocketMQ，不进 `event_log` |
+| 领域事件 | 跨游戏唯一通信；type 必须先登记；不含 memory 消费者 | `event_log` |
+| CorpusDocument | 共享语料信封：playerId / refId / gameSlug / op / body / sha256 | 经 `index_job` embedding 进共享索引 |
+| LiteTopic 帧 | 实时输出载荷（经 FrameSink）；到浏览器才是 SSE | RocketMQ，不进 `event_log` |
 
 关系只通过标识表达：
 
@@ -80,7 +86,7 @@ Player
   ↑ playerId
 Persona / Ledger / Event / 游戏私有表
   ↑
-Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
+Agent 构建输出 → FrameSink.send(LiteTopic) → 网关 SSE
 ```
 
 ## 3. System Context
@@ -122,17 +128,17 @@ Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
 | persona         | 读画像、消费领域事件改分                                        | 不接收插件直写                        |
 | ledger / event  | 只增账本、登记事件                                           | 不推 SSE                         |
 | agent           | ModelRound、工具白名单、Script/真模型适配                       | 不持有浏览器连接、不存 Persona            |
-| plugin + game.* | 玩法、私有表、登记事件、经 SPI 调基座                               | 无 RestController、无 MQ/LLM SDK  |
+| game.*          | 玩法、私有表、本域 ES、可分享语料的 projection                         | 无 RestController、无 MQ/LLM SDK；ES 只打本模块索引 |
 | MySQL           | 事务真相                                                | 不主动推进游戏                        |
 | Redis           | 锁、缓存、jti 黑名单                                        | 不当 SSE 通道、不当账本                 |
-| ES              | 长文与向量                                               | 不当分数真相                         |
+| ES              | 游戏私有长文 + 基座共享语料（向量）                          | 不当分数真相                         |
 | LiteTopic       | 低延迟输出帧                                              | 不当 Turn/分数真相                   |
 
 ### 4.2 领域事件链路
 
 ![领域事件链路|700](./diagrams/04-domain-event.svg)
 
-同一事务写入私有表、账本、`event_log`（`apply_status=PENDING`）。补偿任务扫 `PENDING`：改分成功则 `DONE`，失败加 `attempt_count`，超限 `DEAD`。长文按 `ledger.content_sha256` 对账补 ES。不建 outbox / cursor / applied 表。
+MySQL 事务：私有表、账本、`event_log`（PENDING）。提交后 **同步** 写本域读模型，成功后再对外 emit。外域听事件只调产出方 `query` API，不碰他游戏表/ES。**identity** 扫 PENDING 只改分。可分享正文由 `projection` 异步交 `index_job` → embedding → `irisa_corpus`。
 
 ### 4.3 SSE 帧链路
 
@@ -148,7 +154,7 @@ Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
 
 ### 5.2 病理 admit 与改分
 
-见第 4.2 节。模型调用在事务外；私有表、账本、事件在事务内。
+见第 4.2 节。模型在事务外。MySQL 提交后同步本域 ES，再 emit；改分仍异步扫 `event_log`。
 
 ### 5.3 开庭
 
@@ -158,23 +164,16 @@ Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
 
 | 模块 | 职责 | 允许依赖 |
 | --- | --- | --- |
-| gateway | HTTP/SSE、错误信封 | auth、plugin、persona 查询端口 |
-| auth / player | 身份 | cache、MySQL |
-| persona | 画像与改分 | ledger/event 只读与消费、cache |
-| ledger | 只增账本 | MySQL |
-| event | 白名单、写入 event_log、补偿扫描 | MySQL、persona 聚合 |
-| agent | LlmClient、预算、FactTool | 模型 SDK 仅本模块 |
-| plugin | 扫描 GamePlugin、BaseContext | spi |
-| game.* | 玩法 | **仅 spi** |
-| memory | ES | ES 客户端 |
-| cache | Redis | Redis |
-| messaging 适配 | LiteTopic send/consume | RocketMQ SDK；**仅 agent/gateway 侧实现类，不进 game** |
+| gateway | HTTP/SSE；游戏前门抽象 | identity、base、game.api |
+| identity | 登录、JWT、玩家、画像、改分消费 | base（cache、event_log 只读消费） |
+| base | 账本、事件 append、Agent、共享语料、通道、缓存、ids/clock/uow | **无** identity、无 game.* |
+| game.* | 玩法；本域 ES 同步写；query API 给外域；projection 交共享语料 | base、identity；他游戏仅 `::query` |
 
 强制规则：
 
 - 只有 agent 直接依赖模型 SDK。
 - 只有 gateway 与 agent 的基础设施适配器依赖 RocketMQ。
-- game.* 不引用 RestController、Mapper 以外的他游戏表、LLM、MQ。
+- game.* 无 RestController；不引用他游戏表/Mapper/ES、LLM、MQ。外域只依赖他游戏 `::query`。本域 ES 在 emit 前同步写。共享语料只经 `projection`，禁止直写 `irisa_corpus`。
 - 领域事件定义在产生方，登记于 `docs/contracts/events.yaml`。
 - `ApplicationModules.verify()` 与包级测试校验边界。
 
@@ -197,11 +196,11 @@ Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
 | gravity.graph.updated | 社交关系图重算完成 | energy_net | 覆盖为本次净值 |
 | polarizer.round.closed | 一局思想拳击结束 | bias_tags | 按 payload 增删标签 |
 
-补偿任务：`SELECT ... WHERE apply_status='PENDING' ORDER BY id`。处理成功更新为 `DONE`；失败写入 `apply_error` 并累加 `attempt_count`，超过上限改为 `DEAD` 告警。条件更新 `PENDING → DONE`，避免并发双扣。
+改分补偿在 **identity**：`SELECT ... WHERE apply_status='PENDING' ORDER BY id`。成功 `DONE`；失败累加 `attempt_count`，超限 `DEAD`。条件更新避免双扣。本任务不写 ES。base 不跑该任务。
 
 ### 7.3 Agent
 
-`submit(playerId, gameSlug, role, tools, input, budget, sseTopic)`。  
+`submit(playerId, gameSlug, role, tools, input, budget, frameTopic)`。  
 `tools` 必须全为 `FACT_` 前缀。TonePolicy 按 mindHealth 三段；审计员不加文学语气。Script 读 classpath 剧本；真模型实现同一接口。
 
 每次调用（含失败、超时、Script）写一行 `agent_usage`，并打点预留（Micrometer 计数器/直方图，标签：game_slug、role、provider、status）。打点先接上，管理侧大盘本期不在系统内做页面，用监控平台引用。
@@ -210,38 +209,117 @@ Agent 构建输出 → SseSink.send(LiteTopic) → 网关 SSE
 
 正文、confession、prompt 不得进入 usage 表或指标标签。
 
-### 7.4 游戏插件
+### 7.4 游戏模块
 
-`handle(STATE | ACTION | STREAM_OPEN)`。无 `@RestController`。玩法见 `docs/games/`。
+应用服务处理 STATE / ACTION / STREAM_OPEN。无 `@RestController`。玩法见 `docs/games/`。形状在 `game.api`。
 
-| SPI | 干什么 | 禁止 |
+| 基座 / 身份端口 | 干什么 | 禁止 |
 | --- | --- | --- |
-| `ids()` / `clock()` | 发号、可测试时间 | 插件自己 `Instant.now()` |
-| `uow()` | 包住「改 MySQL + 写 event_log」 | 事务内调 LLM / 睡 / 发 SSE |
+| `ids()` / `clock()` | 发号、可测试时间 | 游戏自己 `Instant.now()` |
+| `uow()` | 包住「改游戏私有表 + ledger」 | 事务内调 LLM / 睡 / FrameSink / 写 ES / 对外 emit |
 | `ledger()` | 只增摘要 | 改历史行 |
-| `events()` | 写已登记领域事件，`apply_status=PENDING` | 未登记 type；直接改 persona |
-| `persona()` | 只读快照 | `UPDATE persona` |
-| `jdbc()` | 仅 `g_{本slug}_*` | 碰基座表或其它游戏表 |
+| `events()` | MySQL 可先落 event_log；**对外投递在本域 ES 成功之后** | 未登记 type；ES 未就绪就 emit 给外域 |
+| `persona()` | 只读快照（identity） | `UPDATE persona` |
 | `agents()` | submit 有界模型调用 | 引入模型 SDK |
-| `sse()` | `SseSink.send` LiteTopic | 持有 SseEmitter、依赖 RocketMQ |
-| `memory()` | 不由插件直写 ES；长文随领域事件增量异构 | 把 ES 当分数库 |
+| `frames()` | `FrameSink.send` LiteTopic | 持有 SseEmitter、依赖 RocketMQ；端口名不含 SSE |
+| `corpus()` | 仅 `projection` 调 `submit(CorpusDocument)` | 内核引用信封；直写共享索引；本域长文走这条 |
+
+游戏私有表由该游戏自己存取。跨游戏禁止 JOIN / 直连他游戏 ES；只调 `game.{slug}.query`。`FACT_*` 封装这些查询，不把 ES 暴露给 Agent。
 
 ## 8. 数据模型与 DDL
 
 ### 8.1 原则
 
-- 分数与钱在 MySQL，故事在 ES，热态在 Redis，SSE 帧在 LiteTopic。
-- 基座表与 `g_{slug}_*` 分所有权；跨游戏禁止 JOIN 私有表。
+- 分数与钱在 MySQL；本域长文在游戏私有 ES/表；共享语料（向量）在基座 `irisa_corpus`；热态在 Redis；实时帧在 LiteTopic。
+- 基座表与 `g_{slug}_*` 分所有权：基座只 Mapper 自己的表；游戏只 Mapper 自己的 `g_{slug}_*`。跨游戏禁止 JOIN 私有表。
 - 不建 `session` 表。
 - **软删规范（全表）：** `is_deleted TINYINT(1) NOT NULL DEFAULT 0`，`deleted_time TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00'`。活跃行 `is_deleted=0` 且 `deleted_time` 为哨兵。删除：`is_deleted=1`，`deleted_time=now()`。含业务唯一键的表把 `is_deleted`（或哨兵 `deleted_time`）纳入唯一索引，使删号后同一 login 可再注册。查询默认加 `is_deleted=0`。账本/事件同样带这两列，历史行软删后补偿与对账不再处理。
 - Flyway 管理；已发布迁移不改。
-- 底座首迁只建本节基座表。游戏表（含 `oath`、`g_patho_*`、`g_court_*`）随对应游戏里程碑增加。
+- 底座首迁只建基座四表：`ledger_entry` / `event_log` / `index_job` / `agent_usage`。`player` / `persona` 随身份里程碑。游戏表随对应游戏里程碑。
 
 ### 8.2 核心表 DDL
 
 库：已有 MySQL 上 `CREATE DATABASE irisa CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;`。
 
 每表均含软删两列，下文不重复解释。
+
+```sql
+CREATE TABLE ledger_entry (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '账本行号，只增不改（可软删）',
+    player_id       BIGINT NOT NULL COMMENT '逻辑玩家 id，无 FK；身份表后建',
+    game_slug       VARCHAR(32) NOT NULL COMMENT '写入方游戏 slug',
+    type            VARCHAR(32) NOT NULL COMMENT 'PATHOLOGY / CASE_OPENED / VERDICT / OATH / DEBT / BANKRUPTCY',
+    business_key    VARCHAR(128) NULL COMMENT '幂等键；需幂等必须非空',
+    payload_json    JSON NOT NULL COMMENT '结构化摘要',
+    content_sha256  CHAR(64) NULL COMMENT 'ES 原文哈希',
+    create_time     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    is_deleted      TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_time    TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
+    KEY idx_ledger_player_type (player_id, type, create_time),
+    UNIQUE KEY uk_ledger_idem (game_slug, type, business_key, is_deleted)
+) COMMENT '不可变账本。基座表，不引用 player';
+
+CREATE TABLE event_log (
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '事件 id',
+    type           VARCHAR(64) NOT NULL COMMENT '已登记 type',
+    producer       VARCHAR(32) NOT NULL COMMENT '生产模块 slug',
+    player_id      BIGINT NOT NULL COMMENT '逻辑玩家 id，无 FK',
+    business_key   VARCHAR(128) NOT NULL COMMENT '与 producer+type 唯一',
+    payload_json   JSON NOT NULL,
+    schema_version INT NOT NULL DEFAULT 1,
+    apply_status   VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT '画像副作用：PENDING / DONE / DEAD；由 identity 消费',
+    apply_error    VARCHAR(255) NULL COMMENT '最近一次失败原因，DONE 时为空',
+    attempt_count  INT NOT NULL DEFAULT 0,
+    applied_time   TIMESTAMP(3) NULL COMMENT '首次成功处理时间',
+    create_time    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '业务发生时间',
+    update_time    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    is_deleted     TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_time   TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
+    UNIQUE KEY uk_event_idem (producer, type, business_key, is_deleted),
+    KEY idx_event_apply (apply_status, is_deleted, id),
+    KEY idx_event_player_time (player_id, create_time)
+) COMMENT '领域事件。基座只 append；apply_status 由 identity 改分消费';
+
+CREATE TABLE index_job (
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '共享语料作业 id',
+    player_id     BIGINT NOT NULL,
+    ref_id        VARCHAR(64) NOT NULL COMMENT '文档 _id，与 ES 幂等键相同',
+    source        VARCHAR(32) NOT NULL COMMENT '交出方 slug，如 pathology',
+    op            VARCHAR(16) NOT NULL COMMENT 'UPSERT / DELETE',
+    sha256        CHAR(64) NULL COMMENT '正文哈希，对账用',
+    body          MEDIUMTEXT NULL COMMENT 'UPSERT 时的长文；DELETE 可空',
+    status        VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING / INDEXED / DEAD',
+    attempt_count INT NOT NULL DEFAULT 0,
+    last_error    VARCHAR(255) NULL,
+    create_time   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    update_time   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    is_deleted    TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_time  TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
+    UNIQUE KEY uk_corpus_ref (source, ref_id, is_deleted),
+    KEY idx_index_status (status, is_deleted, id),
+    KEY idx_index_player (player_id, source)
+) COMMENT '共享语料 outbox。worker embedding 后写入基座共享索引；不是本域存档';
+
+CREATE TABLE agent_usage (
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+    player_id     BIGINT NOT NULL,
+    game_slug     VARCHAR(32) NOT NULL,
+    role          VARCHAR(64) NOT NULL,
+    provider      VARCHAR(32) NOT NULL COMMENT 'script / openai',
+    tokens_in     INT NOT NULL DEFAULT 0,
+    tokens_out    INT NOT NULL DEFAULT 0,
+    duration_ms   INT NOT NULL DEFAULT 0,
+    status        VARCHAR(24) NOT NULL COMMENT 'OK / FAILED / BUDGET_EXHAUSTED',
+    create_time   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    is_deleted    TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_time  TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
+    KEY idx_usage_player_game (player_id, game_slug, create_time)
+) COMMENT '模型调用用量。玩家面板按游戏聚合；不含 prompt 正文';
+```
+
+`player` / `persona` 属身份里程碑，见下节。`oath` 属回音游戏。
+
+### 8.2.1 身份表（不随底座首迁）
 
 ```sql
 CREATE TABLE player (
@@ -264,62 +342,8 @@ CREATE TABLE persona (
     is_deleted    TINYINT(1) NOT NULL DEFAULT 0,
     deleted_time  TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
     CONSTRAINT fk_persona_player FOREIGN KEY (player_id) REFERENCES player(id)
-) COMMENT '全局画像。插件禁止直接 UPDATE';
-
-CREATE TABLE ledger_entry (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '账本行号，只增不改（可软删）',
-    player_id       BIGINT NOT NULL,
-    game_slug       VARCHAR(32) NOT NULL COMMENT '写入方游戏 slug',
-    type            VARCHAR(32) NOT NULL COMMENT 'PATHOLOGY / CASE_OPENED / VERDICT / OATH / DEBT / BANKRUPTCY',
-    business_key    VARCHAR(128) NULL COMMENT '幂等键；需幂等必须非空',
-    payload_json    JSON NOT NULL COMMENT '结构化摘要',
-    content_sha256  CHAR(64) NULL COMMENT 'ES 原文哈希',
-    create_time     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    is_deleted      TINYINT(1) NOT NULL DEFAULT 0,
-    deleted_time    TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
-    KEY idx_ledger_player_type (player_id, type, create_time),
-    UNIQUE KEY uk_ledger_idem (game_slug, type, business_key, is_deleted)
-) COMMENT '不可变账本';
-
-CREATE TABLE event_log (
-    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '事件 id',
-    type           VARCHAR(64) NOT NULL COMMENT '已登记 type',
-    producer       VARCHAR(32) NOT NULL COMMENT '生产插件 slug',
-    player_id      BIGINT NOT NULL,
-    business_key   VARCHAR(128) NOT NULL COMMENT '与 producer+type 唯一',
-    payload_json   JSON NOT NULL,
-    schema_version INT NOT NULL DEFAULT 1,
-    apply_status   VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT '副作用：PENDING / DONE / DEAD',
-    apply_error    VARCHAR(255) NULL COMMENT '最近一次失败原因，DONE 时为空',
-    attempt_count  INT NOT NULL DEFAULT 0,
-    applied_time   TIMESTAMP(3) NULL COMMENT '首次成功处理时间',
-    create_time    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '业务发生时间',
-    update_time    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-    is_deleted     TINYINT(1) NOT NULL DEFAULT 0,
-    deleted_time   TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
-    UNIQUE KEY uk_event_idem (producer, type, business_key, is_deleted),
-    KEY idx_event_apply (apply_status, is_deleted, id),
-    KEY idx_event_player_time (player_id, create_time)
-) COMMENT '领域事件。补偿扫 PENDING 且未删除的行；异构 ES 也消费本表';
-
-CREATE TABLE agent_usage (
-    id            BIGINT PRIMARY KEY AUTO_INCREMENT,
-    player_id     BIGINT NOT NULL,
-    game_slug     VARCHAR(32) NOT NULL,
-    role          VARCHAR(64) NOT NULL,
-    provider      VARCHAR(32) NOT NULL COMMENT 'script / openai',
-    tokens_in     INT NOT NULL DEFAULT 0,
-    tokens_out    INT NOT NULL DEFAULT 0,
-    duration_ms   INT NOT NULL DEFAULT 0,
-    status        VARCHAR(24) NOT NULL COMMENT 'OK / FAILED / BUDGET_EXHAUSTED',
-    create_time   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    is_deleted    TINYINT(1) NOT NULL DEFAULT 0,
-    deleted_time  TIMESTAMP(3) NOT NULL DEFAULT '2100-01-01 00:00:00',
-    KEY idx_usage_player_game (player_id, game_slug, create_time)
-) COMMENT '模型调用用量。玩家面板按游戏聚合；不含 prompt 正文';
+) COMMENT '全局画像。游戏禁止直接 UPDATE';
 ```
-
-`oath` 属于回音游戏，不在底座首迁，见游戏里程碑。
 
 ### 8.3 游戏私有表（附录，不随底座首迁）
 
@@ -395,45 +419,41 @@ CREATE TABLE g_court_utterance (
 
 禁止 Redis Pub/Sub 或 Stream 推 SSE。
 
-### 8.5 Elasticsearch（与 MySQL 增量异构）
+### 8.5 Elasticsearch
 
-MySQL 与 ES **独立**，靠领域事件做增量，最终一致。不是整表同步，也不是插件直写 ES。
+两套所有权，不要混。
+
+**A. 本域（游戏自己写，同步）**
+
+病历、庭审全文、誓言、聊天、案情：`game.{slug}.es` 在 **MySQL 提交后、对外 emit 前** 写完。失败则本命令失败，外域收不到事件。对外只通过 `game.{slug}.query` 读，调用方不知道 ES。
+
+**B. 共享语料（基座，异步，给 LLM）**
 
 ```
-同一事务：游戏私有表 + ledger + event_log(PENDING)
-提交后补偿：
-  1) 改分等副作用 → apply_status DONE
-  2) 若该事件声明要索引长文 → upsert ES（idempotent，按 _id=ref_id）
-ES 失败：事件仍可 DONE 改分；索引用同一事件重试或按 ledger.sha 对账补写
-软删：对应领域事件或补偿把 ES 文档删掉 / 标 deleted
+命令：MySQL 提交 → 同步本域 es → emit
+外域：听事件 → 调产出方 query（或 FACT_*）
+异步：projection → CorpusDocument → index_job → embedding → irisa_corpus
+LLM：AnalysisQuery(playerId, query) → kNN
+审计员：不得调 AnalysisQuery
 ```
 
-`apply_status` 表示副作用（改分）结果，**不**表示 ES 已成功。异构失败单独重试，避免一个字段表示两件事。
-
-统一文档骨架（各索引可增字段）：
+`CorpusDocument`：`playerId`、`refId`、`source`、`op(UPSERT|DELETE)`、`body`、`sha256`。进这条的全部做向量，无 `needVec` 开关。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| player_id | keyword | 隔离查询必带 |
-| ref_id | keyword | reportId / caseId / oathId |
-| game_slug | keyword | |
-| body | text | 长文 |
-| sha256 | keyword | 与 ledger.content_sha256 对账 |
+| player_id | keyword | 查询必带 |
+| ref_id | keyword | 业务主键 |
+| source | keyword | 交出方 slug |
+| body | text | 长文（embedding 输入；也可 BM25 辅检索） |
+| sha256 | keyword | 对账 |
+| vec | dense_vector | worker 写入 |
 | create_time | date | |
-| vec | dense_vector | 仅 mem_oath 等需要近邻的索引 |
 
-| 索引 | 触发事件 | 内容 |
-| --- | --- | --- |
-| mem_pathology | pathology.report.issued | 病历长文 |
-| mem_transcript | court 发言落库类事件 | 庭审/拳击全文 |
-| mem_oath | echo.oath.written | 誓言原文 + 向量 |
-| mem_ghost 等 | 对应游戏事件 | 后续里程碑 |
-
-列表与分数只读 MySQL。点开全文才 GET ES。查询必须带 player_id。
+模型/维度变更：scroll `irisa_corpus` 的 `body` 重算 `vec`。不重放游戏，不扫 `event_log`。P0 用合成文档验收管道；各游戏何时交语料见游戏任务。
 
 ### 8.6 LiteTopic
 
-Topic：`irisa-sse-{playerId}-{topic}`。生产者仅基座 SseSink；消费者仅网关。消息 `{id,event,data}`。单 topic FIFO。失败不回写 MySQL 冒充已推。
+Topic：`irisa-frame-{playerId}-{topic}`。生产者仅基座 `FrameSink`；消费者仅网关。消息 `{id,event,data}`。单 topic FIFO。失败不回写 MySQL 冒充已推。SSE 只存在于网关到浏览器。
 
 ## 9. 对外接口与事件契约
 
@@ -479,7 +499,7 @@ Topic：`irisa-sse-{playerId}-{topic}`。生产者仅基座 SseSink；消费者�
 - JWT 密钥、模型 key、GitHub secret 只走环境变量。
 - 数据按 playerId 隔离；LiteTopic 名带 playerId，网关校验归属后才订。
 - 日志禁止完整 confession、聊天、誓言。
-- 补偿任务失败、插件 onLoad 失败、中间件断连必须可观测。
+- 补偿任务失败、模块启动失败、中间件断连必须可观测。
 - Agent 每次调用打点（game、role、provider、status、tokens、duration）；管理大盘用监控平台，系统内只做玩家 `/me/usage`。
 - Worker/SSE 按单活实例设计；拆多实例前需增加连接路由。
 
@@ -492,17 +512,17 @@ Topic：`irisa-sse-{playerId}-{topic}`。生产者仅基座 SseSink；消费者�
 | 事件 | 幂等改分、下限 0、未知 type |
 | 病理 | admit、ES、扣血 |
 | SSE | 事件名、有/无病历 exhibit、签字 |
-| 安全 | 越权 slug、插件崩溃隔离 |
+| 安全 | 越权 slug、单游戏崩溃隔离 |
 
 框架：Spock。禁止 H2 冒充三件套。
 
 ## 12. 发布顺序
 
-1. 工程骨架、身份、宫格。
-2. 账本、事件、插件转发、病理。
-3. Agent、LiteTopic、网关 SSE、法庭。
-4. 真模型适配器。
-5. OAuth、闹鬼+银行、回音、重力+偏振、webhook。
+1. 工程、基座端口、账本/事件 append、共享语料（向量）、Agent、通道（无 HTTP、无身份）。
+2. 身份：player / persona / JWT / 改分消费。
+3. 网关短请求 + SSE（空宫格可演示进站）。
+4. 游戏：病理（含 projection）→ 法庭 → 其余。
+5. OAuth / 真模型可与游戏并行，不挡 V-BASE。
 6. 安全与回归。
 
 对应实施计划里程碑见 `docs/platform/plan/irisa-base-plan.md`。
@@ -513,14 +533,14 @@ Topic：`irisa-sse-{playerId}-{topic}`。生产者仅基座 SseSink；消费者�
 | --- | --- | --- |
 | LiteTopic 不可用 | 开庭无流 | 短请求与账本仍可用；state 快照收敛 |
 | 模型超时 | 休庭 | 预算与 BUDGET_EXHAUSTED |
-| 插件直写画像 | 分数对不上账本 | Modulith + 无 PersonaWriter |
+| 游戏直写画像 | 分数对不上账本 | Modulith + 无 PersonaWriter |
 | Redis 当 SSE | 与「Redis 可丢」冲突 | ADR-0008 禁止 |
 
 ## 14. 实施前检查清单
 
 - [ ] 已有 MySQL / Redis / ES / RocketMQ 账号可从开发机连通。
 - [ ] JWT secret、数据源、Redis、ES、RocketMQ 均通过 `IRISA_*` 注入。
-- [ ] Flyway DDL 含 COMMENT，无 session 表。
+- [ ] Flyway V1 仅基座四表；无 session、无 player/persona。
 - [ ] `ApplicationModules.verify()` 接入测试。
 - [ ] events.yaml 与 event_log 白名单一致。
 - [ ] 法庭 SSE 事件名与 contracts 一致。

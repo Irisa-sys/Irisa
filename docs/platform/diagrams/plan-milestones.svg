@@ -1,40 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200" role="img" aria-label="里程碑">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200" role="img" aria-label="里程碑：基座 → 身份 → 网关 → 游戏">
   <style>
-    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: #0f172a; font-size: 12px; font-weight: 600; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: #0f172a; font-size: 11px; font-weight: 600; }
     .box { fill: #eef2ff; stroke: #4f46e5; stroke-width: 1.25; }
+    .id { fill: #fef9c3; stroke: #ca8a04; stroke-width: 1.25; }
+    .gate { fill: #ecfdf5; stroke: #059669; stroke-width: 1.25; }
+    .game { fill: #fff7ed; stroke: #ea580c; stroke-width: 1.25; }
     .line { stroke: #64748b; fill: none; stroke-width: 1.2; }
     @media (prefers-color-scheme: dark) {
       text { fill: #e2e8f0; }
       .box { fill: #1e1b4b; stroke: #a5b4fc; }
+      .id { fill: #422006; stroke: #fde047; }
+      .gate { fill: #064e3b; stroke: #6ee7b7; }
+      .game { fill: #431407; stroke: #fdba74; }
       .line { stroke: #94a3b8; }
     }
   </style>
-  <rect class="box" x="8" y="80" width="48" height="32" rx="4"/><text x="32" y="101" text-anchor="middle">M1</text>
-  <rect class="box" x="88" y="24" width="48" height="32" rx="4"/><text x="112" y="45" text-anchor="middle">M2</text>
-  <rect class="box" x="88" y="136" width="48" height="32" rx="4"/><text x="112" y="157" text-anchor="middle">M3</text>
-  <rect class="box" x="168" y="80" width="48" height="32" rx="4"/><text x="192" y="101" text-anchor="middle">M4</text>
-  <rect class="box" x="248" y="80" width="48" height="32" rx="4"/><text x="272" y="101" text-anchor="middle">M5</text>
-  <rect class="box" x="328" y="24" width="48" height="32" rx="4"/><text x="352" y="45" text-anchor="middle">M6</text>
-  <rect class="box" x="328" y="80" width="48" height="32" rx="4"/><text x="352" y="101" text-anchor="middle">M7</text>
-  <rect class="box" x="408" y="24" width="48" height="32" rx="4"/><text x="432" y="45" text-anchor="middle">M8</text>
-  <rect class="box" x="408" y="80" width="48" height="32" rx="4"/><text x="432" y="101" text-anchor="middle">M9</text>
-  <rect class="box" x="408" y="136" width="48" height="32" rx="4"/><text x="432" y="157" text-anchor="middle">M10</text>
-  <rect class="box" x="504" y="80" width="48" height="32" rx="4"/><text x="528" y="101" text-anchor="middle">M11</text>
-  <rect class="box" x="600" y="80" width="48" height="32" rx="4"/><text x="624" y="101" text-anchor="middle">M12</text>
-  <path class="line" d="M56 96 H88"/>
-  <path class="line" d="M56 96 C56 40 88 40 88 40"/>
-  <path class="line" d="M56 96 C56 152 88 152 88 152"/>
-  <path class="line" d="M136 40 C168 40 168 96 168 96"/>
-  <path class="line" d="M136 152 C168 152 168 96 168 96"/>
-  <path class="line" d="M216 96 H248"/>
-  <path class="line" d="M296 96 C328 96 328 40 328 40"/>
-  <path class="line" d="M296 96 H328"/>
-  <path class="line" d="M136 40 C328 40 328 96 328 96"/>
-  <path class="line" d="M296 96 C408 96 408 40 408 40"/>
-  <path class="line" d="M296 96 H408"/>
-  <path class="line" d="M296 96 C408 96 408 152 408 152"/>
-  <path class="line" d="M456 40 C504 40 504 96 504 96"/>
-  <path class="line" d="M456 96 H504"/>
-  <path class="line" d="M456 152 C528 152 528 96 528 96"/>
-  <path class="line" d="M552 96 H600"/>
+  <rect class="box" x="8" y="84" width="56" height="32" rx="4"/><text x="36" y="104" text-anchor="middle">B1–B2</text>
+  <rect class="box" x="88" y="24" width="48" height="32" rx="4"/><text x="112" y="44" text-anchor="middle">B3</text>
+  <rect class="box" x="88" y="84" width="48" height="32" rx="4"/><text x="112" y="104" text-anchor="middle">B4</text>
+  <rect class="box" x="88" y="144" width="48" height="32" rx="4"/><text x="112" y="164" text-anchor="middle">B5–6</text>
+  <rect class="box" x="160" y="84" width="64" height="32" rx="4"/><text x="192" y="104" text-anchor="middle">V-BASE</text>
+  <rect class="id" x="248" y="84" width="48" height="32" rx="4"/><text x="272" y="104" text-anchor="middle">ID1</text>
+  <rect class="id" x="320" y="84" width="48" height="32" rx="4"/><text x="344" y="104" text-anchor="middle">V-ID</text>
+  <rect class="gate" x="392" y="84" width="40" height="32" rx="4"/><text x="412" y="104" text-anchor="middle">GW</text>
+  <rect class="gate" x="456" y="84" width="64" height="32" rx="4"/><text x="488" y="104" text-anchor="middle">V-GATE</text>
+  <rect class="game" x="544" y="84" width="40" height="32" rx="4"/><text x="564" y="104" text-anchor="middle">G1</text>
+  <rect class="game" x="608" y="24" width="48" height="32" rx="4"/><text x="632" y="44" text-anchor="middle">G2</text>
+  <rect class="game" x="608" y="84" width="56" height="32" rx="4"/><text x="636" y="104" text-anchor="middle">G3–5</text>
+  <rect class="game" x="688" y="84" width="40" height="32" rx="4"/><text x="708" y="104" text-anchor="middle">H1</text>
+  <path class="line" d="M64 100 H88"/>
+  <path class="line" d="M112 56 V84"/>
+  <path class="line" d="M136 40 H192 V84"/>
+  <path class="line" d="M136 100 H160"/>
+  <path class="line" d="M136 160 H192 V116"/>
+  <path class="line" d="M224 100 H248"/>
+  <path class="line" d="M296 100 H320"/>
+  <path class="line" d="M368 100 H392"/>
+  <path class="line" d="M432 100 H456"/>
+  <path class="line" d="M520 100 H544"/>
+  <path class="line" d="M584 100 H608"/>
+  <path class="line" d="M564 84 V40 H608"/>
+  <path class="line" d="M664 100 H688"/>
 </svg>

@@ -52,5 +52,5 @@
   <path class="line" d="M300 240 V292"/>
   <path class="line dash" d="M506 240 V292"/>
   <path class="line" d="M620 148 C620 220 638 240 638 292"/>
-  <text class="s" x="560" y="268">SseSink.send</text>
+  <text class="s" x="560" y="268">FrameSink.send</text>
 </svg>
