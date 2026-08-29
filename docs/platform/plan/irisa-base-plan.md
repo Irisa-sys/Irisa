@@ -799,8 +799,8 @@ Controller 只依赖前门抽象。P0 = 进程内调 `game.api` 应用服务。�
 
 ## 22. G4 回音
 
-- [ ] **ECHO-01** STATE：canSwear + activeCount，无原文
-  - 单测：无誓言文本
+- [ ] **ECHO-01** STATE：canSwear + hasActiveOath，无原文、数量或武装状态
+  - 单测：不泄露誓言文本与触发信息
   - 前置：FRONT-01 · 估：0.25／0.5／0.75
 
 - [ ] **ECHO-02** Flyway `oath` 随本游戏
@@ -827,19 +827,22 @@ Controller 只依赖前门抽象。P0 = 进程内调 `game.api` 应用服务。�
   - 单测：2–4 词
   - 前置：ECHO-05 · 估：0.25／0.5／1
 
-- [ ] **ECHO-07** `echo.triggered`
+- [ ] **ECHO-07** `echo.triggered`（武装）与 `echo.resolved`
   - 单测：白名单
   - 前置：EVENT-01 · 估：0.25／0.5／0.5
 
-- [ ] **GW-ECHO-01** `GET /api/echo/pending` 无全文
-  - 单测：仅 oathId + keywords
+- [ ] **GW-ECHO-01** `GET /api/echo/pending` 无全文和关键词
+  - 单测：仅 oathId + keywordCount
   - 前置：ECHO-04 · 估：0.25／0.5／0.75
 
 - [ ] **GW-ECHO-02** `POST /api/echo/unlock`
   - 单测：对/错词
+
+- [ ] **GW-ECHO-03** `POST /api/echo/resolve`：续约、改写或放下
+  - 单测：同一病理周期续约后不重复武装
   - 前置：ECHO-06 · 估：0.25／0.5／0.75
 
-- [ ] **GW-ECHO-03** `GET /api/echo/stream` 壳层事件名
+- [ ] **GW-ECHO-04** `GET /api/echo/stream` 壳层事件名
   - 单测：blackout / voice / wait_unlock / released
   - 前置：GW-15、ECHO-06 · 估：0.25／0.5／1
 

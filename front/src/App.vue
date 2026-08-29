@@ -46,6 +46,7 @@ import {
   Shield,
   Share2,
   Sparkles,
+  TimerReset,
   Target,
   Terminal,
   Trash2,
@@ -213,6 +214,11 @@ const echo = ref({
   pending: false,
   keywords: [],
   unlock: "",
+  armed: false,
+  stage: "challenge",
+  severeDays: 3,
+  lastEval: "未评估",
+  resolved: "",
 });
 const haunt = ref({ diff: "", ghosts: [], ingested: false });
 const bank = ref({
@@ -345,6 +351,14 @@ function navigate(slug) {
   mobileNavOpen.value = false;
   window.location.hash = slug;
   window.scrollTo({ top: 0, behavior: "smooth" });
+  if (echo.value.armed && slug !== "echo") {
+    window.setTimeout(() => {
+      echo.value.armed = false;
+      echo.value.pending = true;
+      echo.value.stage = "challenge";
+      echo.value.unlock = "";
+    }, 500);
+  }
 }
 
 function notify(message) {
@@ -511,22 +525,69 @@ function resetCourt() {
 function saveOath() {
   if (!echo.value.text.trim()) return notify("誓言不能为空");
   echo.value.saved = true;
-  echo.value.keywords = echo.value.text
-    .split(/\s+/)
-    .filter((word) => word.length > 1)
-    .slice(0, 3);
-  if (!echo.value.keywords.length) echo.value.keywords = ["坚持", "兑现"];
+  echo.value.keywords = [];
+  echo.value.lastEval = "等待下一次 6h 评估";
   addActivity(
     "echo",
     "新的誓言已进入休眠",
     "ECHO.OATH.WRITTEN · 原文不会出现在列表里",
   );
-  notify("誓言已写入，它会自己回来");
+  notify("它会自己回来");
 }
 
-function triggerEcho() {
-  echo.value.pending = true;
-  notify("演示模式：回音已被唤醒");
+function evaluateEcho() {
+  if (!echo.value.saved) return notify("没有休眠中的誓言可评估");
+  echo.value.lastEval = "刚刚 · Cron 评估完成";
+  if (echo.value.severeDays < 3) {
+    notify("未武装：最近 5 个有病历日未达到 3 次 SEVERE_SLACK");
+    return;
+  }
+  echo.value.armed = true;
+  addActivity("echo", "回音已被病理窗口武装", "ECHO.TRIGGERED · 等待下次加载");
+  notify("已武装：下次打开任意模块将被回音中断");
+}
+
+function verifyEchoKeywords() {
+  const words = echo.value.unlock.trim().split(/\s+/).filter(Boolean);
+  const oath = echo.value.text.replace(/\s+/g, "");
+  if (words.length < 2 || words.length > 4)
+    return notify("输入原句中的 2 到 4 个关键词，并以空格分隔");
+  if (!words.every((word) => oath.includes(word)))
+    return notify("关键词与封存原句不匹配，请再想一想");
+  echo.value.keywords = words;
+  echo.value.stage = "resolution";
+}
+
+function resolveEcho(outcome) {
+  echo.value.resolved = outcome;
+  echo.value.pending = false;
+  if (outcome === "valid") {
+    echo.value.lastEval = "刚刚 · 已回声";
+    addActivity("echo", "回音已确认仍有效", "ECHO.RESOLVED · VALID");
+    notify("誓言重新进入休眠");
+    return;
+  }
+  echo.value.saved = false;
+  echo.value.text = "";
+  echo.value.keywords = [];
+  echo.value.lastEval = "已正式背弃";
+  addActivity("echo", "誓言已被正式背弃", "ECHO.RESOLVED · ABANDONED");
+  notify("旧誓言已从本域撤除");
+}
+
+function resetEcho() {
+  echo.value = {
+    text: "",
+    saved: false,
+    pending: false,
+    keywords: [],
+    unlock: "",
+    armed: false,
+    stage: "challenge",
+    severeDays: 3,
+    lastEval: "未评估",
+    resolved: "",
+  };
 }
 
 function ingestDiff() {
@@ -2462,83 +2523,77 @@ onBeforeUnmount(() => {
               v-else-if="activeTab === 'echo'"
               class="page game-page echo-page"
             >
-              <div class="echo-layout">
-                <div class="echo-copy">
-                  <span class="game-label lavender"
-                    ><Sparkles :size="15" /> THE OBSESSION ECHO</span
-                  >
-                  <h1>执念回音壁</h1>
-                  <p>
-                    写下你在巅峰时刻相信的事。它会在你最想逃避的时候，回来找你。
-                  </p>
-                  <div class="echo-rule"></div>
-                  <span class="echo-footnote"
-                    >休眠状态 · 列表不会显示誓言原文</span
-                  >
+              <div v-if="!echo.saved" class="echo-oath-stage">
+                <span class="game-label lavender"><Sparkles :size="15" /> THE OBSESSION ECHO</span>
+                <h1>立下一句，你不想忘的承诺。</h1>
+                <p>写完即消失。它不会出现在任何列表里，也不会主动提醒你。</p>
+                <textarea v-model="echo.text" rows="5" placeholder="今年，我一定要……"></textarea>
+                <div class="echo-oath-actions">
+                  <span><Shield :size="14" />仅在本域封存</span>
+                  <button class="button button-light" @click="saveOath"><Sparkles :size="15" />立下誓言</button>
                 </div>
-                <div class="echo-card">
-                  <div class="echo-card-top">
-                    <span class="section-kicker">WRITE AN OATH</span
-                    ><span class="oath-state" :class="{ active: echo.saved }"
-                      ><i></i>{{ echo.saved ? "DORMANT" : "READY" }}</span
-                    >
-                  </div>
-                  <textarea
-                    v-model="echo.text"
-                    :disabled="echo.saved"
-                    placeholder="今年，我一定要……"
-                    rows="5"
-                  ></textarea>
-                  <div v-if="!echo.saved" class="echo-card-foot">
-                    <span>写完即消失</span
-                    ><button class="button button-light" @click="saveOath">
-                      <Sparkles :size="15" />立下誓言
-                    </button>
-                  </div>
-                  <div v-else class="oath-saved">
-                    <Check :size="17" />
-                    <div>
-                      <b>誓言已经休眠</b
-                      ><span
-                        >它不会出现在你的列表里，但还在等待一次真实的病理信号。</span
-                      >
-                    </div>
-                    <button
-                      class="icon-button dark"
-                      aria-label="演示触发回音"
-                      title="演示触发回音"
-                      @click="triggerEcho"
-                    >
-                      <Play :size="15" />
-                    </button>
-                  </div>
-                </div>
+                <p v-if="echo.resolved === 'abandoned'" class="echo-abandoned-note">上一条誓言已被正式背弃。现在可以留下新的版本。</p>
               </div>
+
+              <div v-else class="echo-dormant-stage">
+                <span class="game-label lavender"><Shield :size="15" /> OATH DORMANT</span>
+                <h1>它会自己回来。</h1>
+                <p>誓言原文已经从界面隐去。只有病理事实满足触发条件时，它才会在下一次打开平台时出现。</p>
+                <div class="echo-dormant-seal"><Shield :size="28" /><span>SEALED</span></div>
+                <span class="echo-dormant-status">{{ echo.armed ? "ARMED · 等待下次加载" : "DORMANT · 等待病理窗口" }}</span>
+              </div>
+
+              <section class="echo-mock-console" aria-label="回音壁 mock 测试控制台">
+                <div class="echo-mock-head">
+                  <div>
+                    <span class="section-kicker">MOCK / PATHOLOGY WINDOW</span>
+                    <h2>病理窗口评估器</h2>
+                  </div>
+                  <span>每 6h 执行</span>
+                </div>
+                <p>正式环境只消费 <code>pathology.report.issued</code> 并查询病历细节；无病历时，回音永不触发。</p>
+                <div class="echo-mock-controls">
+                  <label for="echo-severe-days">最近 5 个有病历日的 SEVERE_SLACK
+                    <select id="echo-severe-days" v-model.number="echo.severeDays" :disabled="!echo.saved">
+                      <option :value="0">0 天 · 无触发</option>
+                      <option :value="2">2 天 · 未达阈值</option>
+                      <option :value="3">3 天 · 达到武装阈值</option>
+                      <option :value="4">4 天 · 达到武装阈值</option>
+                    </select>
+                  </label>
+                  <button class="button echo-trigger-button" :disabled="!echo.saved" @click="evaluateEcho"><Activity :size="15" />运行 6h 评估</button>
+                </div>
+                <div class="echo-mock-result">
+                  <span><i :class="{ armed: echo.armed }"></i>{{ echo.armed ? "ARMED" : "DORMANT" }}</span>
+                  <small>LAST_EVAL · {{ echo.lastEval }}</small>
+                  <button v-if="echo.armed" class="text-button" @click="navigate('pathology')"><ArrowRight :size="14" />模拟下次加载</button>
+                </div>
+              </section>
+
               <div v-if="echo.pending" class="echo-interrupt">
                 <div class="interrupt-noise"></div>
                 <div class="interrupt-content">
-                  <span class="interrupt-label">THE ECHO IS AWAKE</span>
-                  <h2>你还记得你说过什么吗？</h2>
-                  <p>{{ echo.text || "今年，我一定会兑现那个承诺。" }}</p>
-                  <input
-                    v-model="echo.unlock"
-                    placeholder="输入誓言中的关键词"
-                  /><button
-                    class="button button-light"
-                    @click="
-                      echo.unlock
-                        ? ((echo.pending = false),
-                          notify('回音已释放，誓言仍然有效'))
-                        : notify('请先输入一个关键词')
-                    "
-                  >
-                    <Check :size="15" />释放回音</button
-                  ><button
-                    class="text-button light-text"
-                    @click="echo.pending = false"
-                  >
-                    暂时离开
-                  </button>
+                  <template v-if="echo.stage === 'challenge'">
+                    <span class="interrupt-label">THE ECHO IS AWAKE</span>
+                    <h2>你还记得，你说过什么吗？</h2>
+                    <blockquote>{{ echo.text }}</blockquote>
+                    <p class="echo-interrupt-signal"><Activity :size="15" />病理窗口：最近 5 个有病历日中检测到 {{ echo.severeDays }} 次 SEVERE_SLACK</p>
+                    <label class="echo-unlock-label" for="echo-unlock">输入原句中的 2-4 个关键词，以空格分隔</label>
+                    <input id="echo-unlock" v-model="echo.unlock" autocomplete="off" placeholder="例如：今年 完成 作品集" @keydown.enter="verifyEchoKeywords" />
+                    <button class="button button-light" @click="verifyEchoKeywords"><Check :size="15" />确认关键词</button>
+                    <p class="echo-modal-caption">这是关闭回声的唯一方式。关键词将由服务端校验；此处使用本域 mock 校验。</p>
+                  </template>
+
+                  <template v-else>
+                    <span class="interrupt-label">ECHO RESOLVED</span>
+                    <div class="echo-resolved-icon"><Check :size="26" /></div>
+                    <h2>现在，给它一个正式的结论。</h2>
+                    <p class="echo-resolved-action">你不必重新许诺，但需要决定：这句话是否还有效。</p>
+                    <div class="echo-resolution-actions">
+                      <button class="button button-light" @click="resolveEcho('valid')"><Shield :size="15" />仍然有效</button>
+                      <button class="text-button light-text" @click="resolveEcho('abandoned')"><X :size="15" />正式背弃</button>
+                    </div>
+                  </template>
                 </div>
               </div>
             </section>

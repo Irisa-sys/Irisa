@@ -78,12 +78,16 @@ GET /api/games/{slug}/state
 ```
 GET /api/echo/pending
   200 { "pending": false }
-  或 { "pending": true, "oathId": "...", "keywords": ["图形学", "今年"] }
-  注意：不返回誓言全文，全文只在触发后的打断流里出现
+  或 { "pending": true, "oathId": "...", "keywordCount": 3 }
+  注意：不返回誓言全文或关键词；全文只在触发后的打断流里出现
 
 POST /api/echo/unlock
   body: { "oathId": "...", "phrase": "用户打的词" }
   200 { "ok": true } | 400 VALIDATION
+
+POST /api/echo/resolve
+  body: { "oathId": "...", "decision": "RENEW" | "REPLACE" | "ABANDON", "replacement"?: { "text": "...", "scope": "ONE_OFF" | "PRACTICE" | "BOUNDARY" } }
+  200 { "status": "DORMANT" | "SUPERSEDED" | "ABANDONED" }
 ```
 
 任意页面加载先打 `pending`。这是壳层的唯一跨游戏请求。
@@ -173,10 +177,10 @@ body: `{ "caseId": "cs_1", "verdict": "...", "signatureSvg": "<svg...>" }`
 
 ## echo（立誓页，打断走壳层）
 
-`POST /actions/swear`  
-body: `{ "text": "今年必须啃下图形学" }`  
+`POST /actions/swear`
+body: `{ "text": "今年必须啃下图形学", "scope": "ONE_OFF" }`
 201 `{ "oathId": "oa_1" }`  
-之后列表不可见。`GET /state` → `{ "canSwear": true, "activeCount": 1 }` 只给计数。
+之后列表不可见。`GET /state` → `{ "canSwear": false, "hasActiveOath": true }`，不返回数量或原文。
 
 ---
 
