@@ -1,4 +1,4 @@
-@ApplicationModule(id = "identity", allowedDependencies = {"base"})
+@ApplicationModule(id = "identity")
 package com.irisa.identity;
 
 import org.springframework.modulith.ApplicationModule;

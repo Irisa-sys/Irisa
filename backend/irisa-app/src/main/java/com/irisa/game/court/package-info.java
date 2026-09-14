@@ -1,4 +1,7 @@
-@ApplicationModule(id = "game.court", allowedDependencies = {"game", "base", "identity", "game.pathology :: query", "game.bank :: query"})
+@ApplicationModule(
+        id = "game.court",
+        allowedDependencies = {"game :: runtime", "llm :: generation"}
+)
 package com.irisa.game.court;
 
 import org.springframework.modulith.ApplicationModule;

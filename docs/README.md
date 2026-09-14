@@ -1,13 +1,19 @@
 # Irisa 文档
 
-| 读什么 | 路径 |
-| --- | --- |
-| 基座怎么设计 | [platform/base-tech-design.md](./platform/base-tech-design.md) |
-| 实施计划（里程碑） | [platform/plan/irisa-base-plan.md](./platform/plan/irisa-base-plan.md) |
-| HTTP / SSE / 事件登记 | [contracts/](./contracts/) |
-| 七款玩法 | [games/](./games/) |
-| 已拍板决策 | [adr/](./adr/) |
-| 术语 | [glossary.md](./glossary.md) |
-| 分期 | [roadmap.md](./roadmap.md) |
+后续产品设计、实现和验收只以 `docs/mvp/` 为准。
 
-实现仅骨架。设计以技术方案为准；排期以实施计划为准（基座 → 身份 → 网关 → 游戏）。改栈先改 ADR。
+玩法与界面：
+
+- [平行宇宙档案馆](./mvp/00-multiverse-archive.md)
+- [人生决策法庭](./mvp/01-decision-court.md)
+- [个人偏见偏振器](./mvp/02-bias-polarizer.md)
+- [UI 风格](./mvp/03-ui-style.md)
+
+实现与验收：
+
+- [后端总约束 Spec](./mvp/04-backend-spec.md)
+- [人生决策法庭 Spec](./mvp/05-decision-court-spec.md)
+- [个人偏见偏振器 Spec](./mvp/06-bias-polarizer-spec.md)
+- [平行宇宙档案馆 Spec](./mvp/07-multiverse-archive-spec.md)
+
+索引见 [mvp/README.md](./mvp/README.md)。
